@@ -1,0 +1,323 @@
+---
+title: "Central African Republic Exports Time Series Analysis (Final Project STA137)"
+author: 'Lidia Wolday, Sara Sofia Abril Guevara, Wengel Semma '
+date: "2024-03-16"
+output: pdf_document
+geometry: margin=2cm
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r, warning=FALSE, include=FALSE}
+library(astsa)
+library(tseries)
+library(forecast)
+library(knitr)
+#load("/Users/wengel/Desktop/finalproject.Rdata")
+#load("~/Downloads/finalproject.Rdata")
+load("C:/Users/ssabrilg/Desktop/finalproject.Rdata")
+#load("/Users/lidiawolday/Downloads/finalproject.Rdata")
+#mydata<-finalPro_data$Exports
+mydata<-ts(finalPro_data$Exports, start = 1960, end = 2017)
+```
+
+
+# Introduction
+
+In this project, we analyze, model and forecast the Central African Republic Exports activity time series data. 
+Central African Republic (CAR) is a landlocked country that is located in the Sub-Saharan region of Africa and gained independence from France on August 13, 1960, becoming a sovereign nation. Besides, the country has had 2 civil wars: the Central African Republic Bush War (2004-2007) and the Central African Republic Civil War in 2013 when despite of efforts to broker peace agreements and stabilize the situation, violence and insecurity persist in various parts of the country nowadays.
+According to the [International Monetary Fund](https://www.imf.org/en/News/Articles/2023/04/28/pr23129-IMF-Executive-Board-Approves-ECF-Arrangement-Central-African-Republic) and [World Bank](https://data.worldbank.org/indicator/NE.EXP.GNFS.ZS?end=2017&locations=CF&start=1960), the CAR economy heavily relies on agriculture but also on its exports of good and services including diamonds, wood, coffee, and cotton.
+
+Since exports are the backbone of the economy in this country, it is essential to model their behavior and predict what the future of this trade will look like.
+We are using a dataset that contains information since CAR became an independent republic. Therefore, it has 58 observations of records from 1960-2017 with 9 variables: country, code, GDP, year, growth, CPI, imports, exports, and population. In this case, we only focus on the variable of exports, which represents the proportion of a country's Gross Domestic Product (GDP) accounted for by exports. This is often expressed as a percentage to provide a standardized measure of a country's trade activity relative to the size of its economy, and we are going to analyze it to make predictions for the following years based on past behaviors.
+It is important to note that due to the political instability of the country and the pandemic that occurred three years after the last data analyzed, these predictions may not necessarily reflect reality. This is not due to the lack of power of the method, but rather due to unexpected or unpredictable circumstances.
+
+
+```{r}
+#par(mfrow=c(1,2))
+#ts.plot(ts(finalPro_data$GDP/1000000, start = 1960, end = 2017),main = "Central African Republic GDP (USD millions)", xlab = "Year", ylab = "GDP in USD millions")
+#ts.plot(ts(finalPro_data$GDP/finalPro_data$Population, start = 1960, end = 2017), main = "Central African Republic GDP per capita", xlab = "Year", ylab = "GDP per capita")
+```
+
+
+# Initial Data Analysis
+
+In order to find a model, the first step that we follow is to plot our data of exports and see the patterns it exhibits. 
+
+```{r exports, fig.height=3, fig.cap="Central African Republic Exports (% of the GDP)"}
+ts.plot(mydata, xlab = "Time", ylab = "Exports (% of GDP)")
+```
+
+## Regarding to the data
+
+The data indicates that the political situation in the Central African Republic has significantly affected its economy, especially in the last 25 years. Interestingly, the two civil wars had different impacts.
+
+During the first civil war (2004), while the GDP continued to rise (See Figure 4 in Appendix of Plots), there was a noticeable decline in the percentage of exports relative to GDP (Figure 1). This suggests that political instability may have led to conflicts with trading partners, negatively affecting commerce. Despite the overall GDP growth, the participation of the exports in that GDP did not growth that much.
+
+In contrast, the second civil war (2013) saw a decrease in GDP alongside an increase in the percentage of exports relative to GDP. This implies that internal economic issues were more severe than those affecting international trade. Despite domestic challenges, there was a greater reliance on exports to sustain economic activity.
+
+## Regarding to the model
+
+There are assumptions of time series analysis that we want our model to accomplish such as stationarity, normality, constant variance, and independent and identically distributed errors. If our data exhibits a trend, we need to detrend it before modeling to make it stationary. 
+
+**Stationarity:** a stationary time series has a constant mean, variance and auto correlation over time. This allows for more reliable forecast, and consistent pattern over time;making it easier to develop robust forecasting. Some visual ways to determine this are no trends, or seasonality. In order to analyze the stationarity we plot the data and use the as adf test to see whether our data is stationary or not. 
+
+
+
+```{r, include=FALSE}
+adftestres = adf.test(mydata)
+pvaladftest = adftestres$p.value
+acf(mydata)
+pacf(mydata)
+```
+
+From the Figure 1, we can see that our data has trend, making it non-stationary. To further prove that, we can perform **Augmented Dickey-Fuller test** (full result in Table 4 in appendix) at significance $\alpha=0.1$ to check stationarity in order to have a stable forecasting:
+
+- Null Hypothesis ($H_0$): The time series has a unit root and is non-stationary.
+
+- Alternative Hypothesis ($H_1$): The time series does not have a unit root and is stationary.
+
+The decision rule states that if $\text{p-value}\geq\alpha$, we fail reject $H_0$. If `p-value`$<\alpha$, we reject the $H_0$.
+
+Since the p-value is `r round(pvaladftest,5)`$\approx\alpha=0.01$, we fail to reject the $H_0$ and conclude that **our data is not stationary**. After this, we will try methods of transformation. 
+
+# Transformation
+
+Given the conclusion above, we tried the three different transformation methods which are used to remove trends, and stabilize the variance.
+
+
+
+**Differencing $x_t-x_{t-1}$: **
+
+```{r, include=FALSE}
+choice1<-diff(mydata)
+par(mfrow = c(2, 2)) 
+ts.plot(choice1)
+acf(choice1)
+pacf(choice1)
+adfdiff<-adf.test(choice1)
+```
+When we took the difference of our data, we saw that there was a reduction in trend (see Figure 2).In addition, we found a $\text{p-value}=0.08< \alpha=0.1$ (Table 1), meaning our differenced data is stationary. 
+
+**Log Transformation $log(x_t)$:**
+
+```{r, include=FALSE}
+par(mfrow = c(2, 2)) 
+choice2=log(mydata)
+ts.plot(choice2)
+acf(choice2)
+pacf(choice2)
+adfchoice2<-adf.test(choice2)
+```
+From Figure 2, we can see that log transformation didn't remove the trend. Also the ACF plot slowly decays and most values are above the significance range which shows that it is not stationary. Furthermore, $\text{p-value}=0.182	> \alpha=0.1$ (Table 1). Therefore, we fail to reject $H_0$ and conclude that it is non stationary.
+
+**Difference of log $log(x_t)-log(x_{t-1})$: **
+
+```{r, include=FALSE}
+par(mfrow = c(2, 2)) 
+choice3=diff(choice2)
+ts.plot(choice3)
+acf(choice3)
+pacf(choice3)
+adfchoice3<-adf.test(choice3)
+
+```
+Here, the plot in Figure 2 looks similar to the difference transformation. They have similar p-value in table 1 for the ADF test as well as similar acf and pacf plots. 
+
+```{r, fig.cap="Time series plot of transformed variables", fig.height=3}
+par(mfrow = c(1, 3)) 
+ts.plot(choice1, gpars=list(ylab="Difference"))
+ts.plot(choice2, gpars=list(ylab="Log"))
+ts.plot(choice3, gpars=list(ylab="Log Difference"))
+```
+
+
+```{r}
+kable(rbind(c("Difference", "Log", "Log difference"),c(round(adfdiff$p.value,3), round(adfchoice2$p.value,3), round(adfchoice3$p.value,3))),caption = "p-values for ADF Test applied to transformations")
+```
+
+
+Given the values of its significance with respect to $\alpha=0.1$, we drop the option of $\log$ transformations and will use the differenced and difference log transformed data to do model fitting. 
+
+# Model Fitting, Selection and Diagnostics
+
+After comparing several models, we have summarized our results in Table 2, which presents the values of AIC, AICc, and BIC, along with the summary of Ljung-Box statistics assessing the independence of errors. These statistics are derived from a test evaluating the independence of errors, which represent white noise in this context. The hypothesis statements for this test are as follows: $H_0:$ The errors ($w_t$) are independent VS $H_1:$ The errors ($w_t$) are not independent.
+
+We observed that only the ARIMA(2,0,2) model, both for difference and log difference, yielded $\text{p-values}> 0.1=\alpha$. Consequently, we discarded the other eight models as they failed to satisfy the condition of independence of white noise.
+
+Regarding the two models that last. The ACF plot of the residuals (Figure ARMA(2,0,2)and Figure 6) show that there is no significant spike and the ACF is close to zero or within the range (blue dashed line). The q-q plot shows that the errors are normally distributed since all the points are within the significant range (highlighted gray). 
+
+Finally, we used the AIC/BIc criteria to pick our best model since both models have similar diagnostics. Since the **log difference ARIMA(2,0,2)** has the lowest AIC/BIC, we have concluded that it is **the best model to do forecasting**.
+
+
+```{r,include=FALSE}
+ar1_d = sarima(choice1, 0,0,1)
+```
+
+
+
+```{r,include=FALSE}
+ar2_d = sarima(choice1,0,0,2)
+```
+
+```{r,include=FALSE}
+ar1_ld = sarima(choice3,0,0,1 )
+```
+
+
+```{r,include=FALSE}
+ar2_ld = sarima(choice3,0,0,2 )
+```
+
+
+
+```{r,include=FALSE}
+ari1_d = sarima(choice1, 0, 1, 1, no.constant=TRUE)
+
+```
+
+```{r,include=FALSE}
+arima111_d = sarima(choice1, 1, 1, 1, no.constant=TRUE)
+```
+
+```{r,include=FALSE}
+arma12_d = sarima(choice1, 1, 0, 2, no.constant=TRUE)
+```
+```{r, include=FALSE}
+arima112_d = sarima(choice1, 1, 1, 2, no.constant=TRUE)
+```
+
+
+```{r, include=FALSE}
+arma22_d = suppressMessages(sarima(choice1, 2, 0, 2, no.constant=TRUE, details = TRUE, Model = FALSE))
+
+```
+
+
+```{r, results='hide',fig.keep='all'}
+arma22_ld = suppressMessages(sarima(choice3, 2, 0, 2, no.constant=TRUE, details = TRUE))
+  str(arma22_ld)
+```
+
+```{r}
+models <- data.frame(
+  Model = c("ARIMA(1,0,0) with differenced", 
+            "ARIMA(2,0,0) with differenced", 
+            "ARIMA(1,0,0) with log difference", 
+            "ARIMA(2,0,0) with log difference", 
+            "ARIMA(1,1,0) with differenced", 
+            "ARIMA(1,1,1) with differenced", 
+            "ARIMA(1,0,2) with differenced", 
+            "ARIMA(1,1,2) with differenced", 
+            "ARIMA(2,0,2) with differenced", 
+            "ARIMA(2,0,2) with log difference"),
+  Errors_wt_independent = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, TRUE)
+)
+
+
+kable(cbind(models,round(rbind(ar1_d$ICs, ar2_d$ICs, ar1_ld$ICs, ar2_ld$ICs, ari1_d$ICs, arima111_d$ICs, arma12_d$ICs, arima112_d$ICs, arma22_d$ICs, arma22_ld$ICs),3)),caption = "Comparison of wt p-vals AIC and BIC for model candidates")
+```
+
+
+
+# Best model
+
+According to the model selection, we extract the coefficients and see that all of them are significant, therefore all of them are included in the model.
+
+```{r}
+kable(arma22_ld$ttable, caption = "Coefficients and significance of ARIMA(2,0,2) model for CAR exports")
+```
+
+
+```{r}
+finalmodel=arima(choice3,order=c(2,0,2))
+
+#exp(finalmodel$coef)
+```
+
+## Model of the transformed variable
+
+$$y_{t}=\log(x_t)-\log(x_{t-1}) \qquad \Rightarrow \qquad y_t=\log\frac{x_t}{x_{t-1}}$$
+
+$$y_t=-0.6871y_{t-1}-0.457y_{t-2}-1.6212w_{t-1}+0.6212w_{t-2}+w_t$$
+
+$$\log\frac{x_t}{x_{t-1}}=-0.6871\log\frac{x_{t-1}}{x_{t-2}}-0.457\log\frac{x_{t-2}}{x_{t-3}}-1.6212w_{t-1}+0.6212w_{t-2}+w_t$$
+
+
+$$x_t =1.5010738x_{t-1}-0.0438425x_{t-2}-0.4572313x_{t-3}+1.461100w_{t-1}+1.683316w_{t-2}+w_t$$
+
+The final model suggests that the export percentage of the Central African Republic at time $t$ is influenced by several factors. An increase of $1.501$ in the export percentage from the previous period positively contributes to the current export percentage, while decreases of $-0.0438$ and $-0.457$ in the export percentage two and three periods prior, respectively, negatively influence the current export percentage. Additionally, variations in the white noise at time $t-1$ and $t-2$ also play a role, with coefficients of $1.461$ and $1.683$, respectively.
+
+# Prediction 
+
+In our modeling process, we utilized the transformed variable for both modeling and prediction. The predicted export values (as a percentage of GDP) from 2018 to 2025, along with their corresponding 80% and 95% prediction intervals, are presented in Figure 3.
+
+The predictions indicate a stabilization in export values, as evidenced by the mean values hovering around zero. A predicted value of 0 for $\log\frac{x_t}{x_{t-1}}$ implies no expected change in exports compared to the previous period, suggesting stability in export trends.
+
+However, the wide prediction intervals suggest considerable uncertainty in the forecasts. This uncertainty stems from the high variability in the data, which has experienced significant fluctuations in both positive and negative directions, making it challenging to predict a clear trend.
+
+```{r, fig.cap="Forecast", fig.height=2.5}
+forecstx = forecast(finalmodel,h=8)
+autoplot(forecast(finalmodel))
+
+```
+
+```{r}
+#str(forecstx)
+unlist(exp(forecstx$mean))
+```
+
+Finally, looking at the values published by the World Bank for CAR [here](https://data.worldbank.org/indicator/NE.EXP.GNFS.ZS?end=2022&locations=CF&start=1960) from 2018 - 2022, they are inside our 95% prediction interval.
+
+# Conclusion
+
+The data for exports and GDP during 1960-2017 might be showing a complex relationship between political instability, economic performance, and international trade in the Central African Republic over the past few decades as an independent Republic. 
+Despite of the factors that might be externally affecting its economic performance and international trade, we find a model ARMA(2,2) that could explain its export during its time as sovereign nation, where s positive impact is observed with a $1.501$ increase in the export percentage from the previous period, while negative effects are seen with decreases of $-0.0438$ and $-0.457$ in the export percentage two and three periods prior, respectively. Additionally, variations in the white noise at time $t-1$ and $t-2$ also contribute, with coefficients of $1.461$ and $1.683$, respectively.
+
+Regarding the prediction we saw in general a expected change of 0, which implies a suggestion of stabilization that coincides with the values of the years that had happened. However, the prediction intervals cover an area that might suggest big changes towards increasing or decreasing, which could be showing a limitation of the model due to variables related to the instability of the country in the past that affect the exports value but are difficult to predict. Therefore, it's apparent that the model may not fully capture the underlying dynamics of the time series. Several factors could contribute to this limitation, including the model's simplicity, insufficient consideration of all relevant influencing factors, or the inherent difficulty or unpredictability of certain factors (such as civil wars) that significantly affect the data.
+
+
+## References
+
+- IMF Executive Board Approves a US$191.4 million Extended Credit Facility Arrangement with the Central African Republic. International Monetary Fund. (April 27, 2023). [IMFLink](https://www.imf.org/en/News/Articles/2023/04/28/pr23129-IMF-Executive-Board-Approves-ECF-Arrangement-Central-African-Republic)
+
+- World Bank. (n.d.). Exports of Goods and Services (% of GDP). Retrieved from  [WBLink](https://data.worldbank.org/indicator/NE.EXP.GNFS.ZS?end=2017&locations=CF&start=1960)
+
+#### Plots and Tables Appendix
+
+Here we present some addional tables and plots that were referenced in the report but were not printed for the sake of the length and cohesion of the document.
+
+```{r, fig.cap="Central African Republic GDP (USD millions) **Not required but related to exports", fig.height=3}
+par(mfrow=c(1,1))
+ts.plot(ts(finalPro_data$GDP/1000000, start = 1960, end = 2017),main = "Central African Republic GDP (USD millions)", xlab = "Year", ylab = "GDP in USD millions")
+
+```
+
+
+```{r,results='hide',fig.keep='all', fig.cap="ARIMA(0,0,2) model for log difference"}
+ar2_ld = sarima(choice3,0,0,2 )
+```
+
+```{r, results='hide',fig.keep='all', fig.cap="ARIMA((2,0,2) for diff"}
+arma22_d = suppressMessages(sarima(choice1, 2, 0, 2, no.constant=TRUE, details = TRUE, Model = FALSE))
+
+```
+
+
+```{r}
+kable(as.data.frame(unlist(adf.test(mydata))), caption = "Augmented Dickey-Fuller Test for original data")
+```
+
+
+
+
+#### Code Appendix
+
+```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
+
+
