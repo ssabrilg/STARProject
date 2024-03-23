@@ -1,0 +1,806 @@
+---
+title: "The Impact of Class Size and Other Factors on Math Performance: A Study of First-Grade Students in the Project STAR Dataset"
+author: "Sara Sofía Abril Guevara"
+date: "03-18-2024"
+#output:
+#  html_document:
+    
+output:
+  html_document:
+    theme: cosmo
+    toc: true
+    toc_float: true
+    df_print: paged
+    number_sections: yes
+---
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.pos = 'H')
+knitr::opts_chunk$set(warn = FALSE)
+knitr::opts_chunk$set(echo = FALSE)
+library(ggplot2)
+library(knitr)
+library(gplots)
+library(stats)
+library(KScorrect)
+library(nortest)
+library(maps)
+library(ggplot2)
+library(foreign)
+suppressWarnings(library(dplyr))
+```
+
+
+***
+
+# Abstract
+
+
+
+This project explores the impact of class type and size on math performance among first-grade students participating in Project STAR. Using data from the STAR project, we investigate how variables such as class type, school, urbanicity, attendance, teachers' characteristics, among others, influence math scores. We begin with a descriptive analysis of the dataset, followed by a discussion of the experimental design's limitations. Next, we propose a fixed effects ANOVA model treating each class as an observation, with median math scores as the summary measure. Sensitivity analysis guides our approach, leading to the use of non-parametric methods to address non-normality in errors. Our findings highlight the significant roles of class size, school, and free lunch (as a sort of economical indicator) in shaping math outcomes, offering insights for educational policy and practice.
+
+
+
+# Introduction
+
+Education is a fundamental determinant of the development and progress of every country, and governments invest significant resources in researching ways to improve education for their populations. Central to this effort is the exploration of how education can be made more effective, impactful, and cost-efficient for a nation.
+
+One prominent topic in the realm of education reform, particularly in the United States, is class-size reduction (CSR). CSR aims to enhance student-teacher interaction and improve academic performance by reducing the number of students per classroom. While CSR holds potential benefits, its implementation poses financial and logistical challenges, prompting debates about its practicality and value. To shed light on this debate, numerous studies have been conducted, with notable examples including Project STAR (conducted in K-3 classes in 1985 in Tennessee) and Project SAGE (conducted in the early 2000s in Wisconsin). These studies investigate the effects of CSR on student outcomes and teacher working conditions.
+
+In this project, we utilize data from Project Student-Teacher Achievement Ratio - STAR to explore the effects of Class-size reduction and other variables or factors influencing first-grade students' math performance. We are particularly interested in answering two questions:
+
+  - Primary question: are there any differences in math scaled scores in 1st grade across class types? 
+  - Secondary question: which class type is associated with the highest math scaled scores in 1st grade?
+
+The potential impact of the answer for these questions, and in general for the research about Class-size reduction, is to find how effective is the reduction of students in a class in terms of performance and how worth is to assume the financial and logistical challenges that it represents.
+
+Given that this is a nation-wide question of public interest, we have found many analysis about the STAR project data, which analyze and share interesting perspectives in favor or against CSR and bringing some important variables of impact such as socioeconomic status and social movility. 
+
+For example Finn *et. al.* (2005) [4] showed that attending small classes for three or more years during the early grades significantly increased the likelihood of high school graduation for students with low socioeconomic status by approximately 67%. Furthermore, four years of small classes more than doubled the odds. Notably, the graduation rates of low-income students who experienced three or more years in small classes matched or exceeded those of higher-income students, reducing the income gap.
+
+Moreover, Krueger and Whitmore (2002) found that if all students attended small classes from kindergarten to third grade for one to four years, the black-white test score gap would decrease by 38% in those grades and by 15% thereafter. They also determined that changes in pupil-teacher ratios between 1971 and 1999 accounted for most of the reduction in the black-white test score gap as measured by the NAEP exam. Moreover, they predicted that smaller classes in early grades would result in a 60% reduction in the black-white gap in college entrance exam participation and scores.
+
+In other perspective, Hanushek (1999) [6] presented a critical perspective on class size reduction, particularly in the context of Project STAR. He highlighted design and implementation issues in the study and questions the validity of its results. Additionally, he suggested that the nonexperimental evidence does not consistently support the idea that reducing class size leads to improvements in achievement. He emphasizes uncertainties and potential biases in the experimental evidence, indicating limited support for smaller reductions in class size or for reductions in larger grades based on the STAR results.
+
+These varying perspectives underscore the complexity of the dataset and the STAR project. This report aims to contribute to the ongoing dialogue surrounding education reform, focusing on student performance, socioeconomic variables, and informing evidence-based decision-making in educational policy, expenditure, and practice.
+
+
+# Background 
+
+The Project Student-Teacher Achievement Ratio (STAR) originated from a public initiative by the Tennessee Legislature in May 1985, with the passage of House Bill 544 in the United States House of Representatives. This bill provided authorization and funding for a policy study to investigate "the effects of class size on student achievement in the primary grades." The Tennessee State Department of Education allocated USD 12 million for this endeavor, forming a consortium of researchers primarily composed of university representatives. The consortium aimed to address three key questions (Finn et al., 2007):
+
+1. What are the effects of reduced class sizes on student achievement (both normed and criterion tests) and development (including self-concept and attendance) in public elementary school grades (K-3)?
+
+2. Is there a cumulative effect of being in a small class over an extended period (4 years) compared to a one-year effect for students in a small class for only one year?
+
+3. Does a training program, designed to help teachers maximize the benefits of small classes or effectively use aides, improve student performance compared to teachers without such preparation for altered conditions?
+
+As a result of the consortium's efforts, a longitudinal experiment was conducted in Tennessee beginning in 1985 and spanning four years with an extension of student achievement data collected through high school and ancillary studies resulted in other non-achievement variables being added to the data set.
+
+## Source of the data
+
+The primary student-level dataset comprises information on 11,601 students from schools in Tennessee who participated in the experimental phase for at least one year, spanning grades K-3. It includes demographic details, school and class identifiers, school and teacher information, and the experimental condition (referred to as "class type"). Additionally, it contains norm-referenced and criterion-referenced achievement test scores, along with motivation and self-concept scores. Supplementary data includes achievement test scores from grades 4-8, teacher behavior ratings, student self-reports on engagement and peer effects, high school course enrollment, SAT/ACT scores, and graduation/dropout details. Missing data may result from unavailability in state records or non-participation in specific studies.
+
+All Tennessee school systems were invited to join STAR, but they were selected according to the accomplishment of some necessary conditions for the research. Some of the conditions were: the legislation required that the project include inner city, suburban (Nashville, Memphis, Knoxville, or Chattanooga), urban (non-metropolitan areas), and rural schools (several miles away from metropolitan areas), all participating teachers had to be certified for the grade level they were teaching and a minimum of 57 students was necessary, providing enough students for one class of each of three conditions (with 13, 22, and 22 students, respectively).
+
+It is also important to point out that "schools with more than half of their students on free or reduced price lunch were defined as inner-city" [7].
+
+At the end across the geographic expanse of Tennessee, a total of 79 schools from 42 districts were carefully chosen for participation. Among these selections were 17 inner-city schools, 16 suburban schools, 8 urban and 38 rural schools.
+
+## Experimental design
+<div id="experimental_design"></div>
+
+
+The STAR was a longitudinal experiment followed a cohort of students over four years, starting with those entering kindergarten in 1985 or first grade in 1986 given that kindergarten was not legally mandated in Tennessee at the time, a substantial number of students joined the STAR sample when they entered first grade. Within each school, students entering kindergarten and teachers were **randomly** assigned to one of three experimental conditions (`class size` or `clase type`): small classes (13-17 students), regular classes (22-25 students), or regular classes with a full-time teacher aide. The randomization process was monitored to ensure fairness, and comparisons were made across gender, race, and socioeconomic status to detect any bias. Students were suppose to remain in their assigned class type throughout the project, with some participating for the full four years and others joining in first grade and continuing through third grade. 
+Apart from adjusting class size and providing teacher aides, no additional experimental changes were made. The aim was to assess the effects of reduced class sizes while maintaining normal school practices.
+<div id="randomization_problems"></div>
+However, regarding to the randomization, 3 factors affected the study design: 1) After observing no significant achievement differences between regular (R) and teacher-aide (RA) classes in kindergarten, approximately half of R students were randomly reassigned to RA classes for subsequent years, and vice versa. This reassignment did not involve small (S) classes. 2) A three-day training course was conducted for 54 second-grade teachers from 15 STAR schools during the summer between grades 1 and 2 but there were no significant achievement score differences between trained and untrained teachers. 3) Student mobility throughout the experiment affected STAR class compositions and sizes. Students transferring into STAR schools from non-STAR schools were randomly assigned to class types, with the condition that small classes could not exceed 17 students. *Besides, in this project we verified that any of the classes of first grade exceeds their mandatory interval by more than 7 students*
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE}
+
+STAR = read.table("STAR_Students.sav", header = TRUE, sep = ",", quote = "\"")
+STAR = read.spss("STAR_Students.sav", to.data.frame = TRUE)
+#str(STAR)
+#attr(STAR, "variable.labels")
+```
+
+
+```{r}
+
+# Calculate proportions
+prop_table <- as.data.frame(prop.table(table(STAR$yearsstar)))
+names(prop_table) = c("Years", "Students")
+#ggplot(stack(prop.table(table(STAR$yearsstar))), aes(x = "", y = values, fill = ind)) + geom_bar(stat = "identity", position = "fill", width = 0.5) + coord_flip() + labs(title = "Proportions of yearsstar", x = NULL, y = "Percentage") + scale_fill_brewer(palette = "Set3") + theme_minimal() + theme(legend.position = "top", axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.y = element_text(margin = margin(r = 20)), panel.grid.major = element_line(size = 0.2)) + geom_text(aes(label = paste0(round(values * 100), "%")), position = position_fill(vjust = 0.5))
+
+df = as.data.frame(rbind(table(STAR$yearsstar), prop.table(table(STAR$yearsstar))))
+df[2,] = df[2,]*100
+df = round(df, 0)
+rownames(df) =c("Number of students", "Percentage of students")
+kable(df, caption = "Number and Percentage of Students Participating in STAR Project for Different Number of Years")
+#table(STAR$cmpstype)
+#table(STAR$cmpsdura)
+```
+
+**Measurement of academic performance**
+The STAR project assessed academic performance using norm-referenced Stanford Achievement Tests (SATs) for grades K-3 and criterion-referenced Basic Skills First (BSF) tests for grades 1-3, covering reading and mathematics skills. SAT scores were reported on an item-response-theory (IRT) scale, allowing for grade-level comparisons, while BSF scores measured total correct items and objectives mastered. However, BSF scores could not be directly compared across grades due to variations in objectives.
+
+There is also a self-motivation measurement but is not mentioned in this report for the sake of longitude of the document and is not relevant for the questions of interest.
+
+
+## Comments about expertimental design
+
+The longitudinal experiment spanning four years is, overall, a well-designed study. Tracking individual performance and characteristics (socioeconomic differentials) over such a period presents significant challenges, yet the experiment benefits from favorable conditions, robust financial support, and efficient logistics. These factors collectively contribute to the reliability of the study and enable meaningful conclusions to be drawn from its findings.
+
+### Good geographical criteria of selection of schools
+Geographical inequality is inherent and the design of this experiment duly acknowledges this reality. Legislative mandates stipulated the inclusion of inner-city, suburban, urban, and rural schools, recognizing their inherent differences. Rather than solely prioritizing population density, the study emphasized representing the diverse origins of Tennessee's populace when selecting participant schools.
+
+### Emphasis on Teacher Characteristics with Potential Homoscedasticity Assumption: 
+<div id="emphasis_teacher"></div>
+While the study focuses on discerning differences among class types, significant attention is given to the characteristics of teachers, underscoring their pivotal role in the research. This acknowledgment reflects the understanding that a teacher's attributes play a crucial role in class performance. However, it also implies that individual students may not be the primary focus, as indicated by the assumption of equal variances across all groups. This assumption may not hold true, as student performance can be influenced by factors beyond school and teacher variables. Nevertheless, the study addresses this concern through rigorous randomization procedures, as stated: "The samples were compared on gender, race, and free-lunch composition to look for any systematic bias that may have arisen; none was found"
+
+
+### Randomization issues
+
+Despite claims of random student assignment to class sizes and the intention for students to remain in their assigned groups throughout the study, several factors suggest otherwise.
+
+1. Non compliance: Noncompliance: A considerable number of students switched between class types, contrary to the randomization principle. The study [acknowledges these switches](#randomization_problems): approximately half of R students were randomly reassigned to RA classes for subsequent years after observing no significant achievement. However, the technical report [8] also points out that these changes were "due primarily to teacher-identified **discipline problems** and some **parent complaints**", indicating intentional rather than random alterations.
+
+2. While the study accommodates student mobility, allowing participation in the STAR project "for two nonconsecutive years (e.g., grades 1 and 3);" may introduce challenges. The year when the student was not enrolled in the school could significantly impact their performance. Such instances might have led to disqualification of individual measurements.
+
+### Lack of clear economic variables that affect performance
+<div id="freelunch50"></div>
+The study lacks direct socioeconomic variables that could be measured to explain student performance, such as parental income. Only variables like free/reduced lunch are used, which provide limited insight into socioeconomic factors. The research treats Tennessee areas as economically homogeneous, which could be misleading. For instance, "Schools with more than half of their students on free or reduced price lunch were defined as inner-city."[7], which oversimplifies the economic diversity within certain areas. While some areas may share economic characteristics, others may have high levels of inequality that are not captured by the research. This limitation is relevant to the [potential homoskedasticity assumption](#emphasis_teacher) mentioned earlier.
+
+
+
+# Descriptive analysis 
+
+The STAR dataset is extensive, containing more information than required for our analysis. Therefore, a data preprocessing was essential and the dataset was properly cleaned. This allowed us to build an analysis of the most important variables in this project.
+
+
+ 
+```{r, include=FALSE}
+STAR1 = STAR[, c("stdntid","gender", "race", "birthmonth", "birthday", "birthyear", "FLAGSG1" ,"flagg1", "g1classtype", "g1schid", "g1surban", "g1tchid", "g1tgen", "g1trace", "g1thighdegree", "g1tcareer", "g1tyears", "g1classsize", "g1present", "g1absent",  "g1tmathss", "g1mathbsraw", "g1freelunch")]
+STAR1 = STAR1[which(STAR$FLAGSG1=="YES"),]
+STAR1 = STAR1[which(is.na(STAR1$g1tmathss)==FALSE),]
+STAR1 = STAR1[which(is.na(STAR1$g1classtype)==FALSE),]
+STAR1$g1schid = as.factor(STAR1$g1schid)
+STAR1$g1tchid = as.factor(STAR1$g1tchid)
+STAR1$stdntid = as.factor(STAR1$stdntid)
+#str(STAR1)
+
+```
+
+
+ 
+ 
+```{r, echo = FALSE, warning=FALSE, include=FALSE}
+
+cat("Table: Small Class sizes")
+table(with(STAR1, g1classsize[g1classtype=="SMALL CLASS"]))
+
+cat("\nTable: Regular Class sizes")
+table(with(STAR1, g1classsize[g1classtype=="REGULAR CLASS"]))
+
+cat("\nTable: Regular+aide Class sizes")
+table(with(STAR1, g1classsize[g1classtype=="REGULAR + AIDE CLASS"]))
+
+```
+
+```{r, echo = FALSE}
+suppressWarnings({group_1g = STAR1 %>%
+  group_by(g1tchid) %>%
+  summarise(mean_math1 = mean(g1tmathss), median_math1=median(g1tmathss), students = n(), perfreeluch=sum(g1freelunch=="FREE LUNCH")/students)
+})
+#str(group_1g)
+STAR1 = STAR1 %>% merge(group_1g)
+#STAR1$g1tfreelunch = as.factor(ifelse(STAR1$perfreeluch>=2/3, "Large%FreeLunch", ifelse(STAR1$perfreeluch>=1/3, "Medium%FreeLunch", "Small%FreeLunch") ) )
+STAR1$g1tfreelunch = as.factor(ifelse(STAR1$perfreeluch>=1/2, "High%FreeLunch", "Low%FreeLunch" ) )
+#str(STAR1)
+#STAR1[which((abs(STAR1$g1classsize-STAR1$students)>7)),]
+```
+
+
+
+## Univariate Descriptive Analysis
+
+After an intensive analysis, which will be justified throughout this report, the key variables identified are **class type**, **school ID**, **urbanicity** (school location), **math score**, and access to **free lunch**. The variable of free lunch is considered a proxy for socioeconomic status: students with access to free or reduced-price lunch are typically classified as low income.
+
+```{r, fig.cap="Distribution of variables of interest"}
+par(mfrow=c(2,2))
+class_table <- table(STAR1$g1classtype)
+class_df <- data.frame(Class_Type = names(class_table), Frequency = as.numeric(class_table))
+barplot(class_df$Frequency, names.arg = class_df$Class_Type, col = "skyblue", main = "Class Types", xlab = "Class Type", ylab = "Frequency")
+
+class_table <- table(STAR1$g1surban)
+class_df <- data.frame(Class_Type = names(class_table), Frequency = as.numeric(class_table))
+barplot(class_df$Frequency, names.arg = class_df$Class_Type, col = "skyblue", main = "Urbanicity", xlab = "Class Type", ylab = "Frequency")
+
+class_table <- table(STAR1$g1tfreelunch)
+class_df <- data.frame(Class_Type = names(class_table), Frequency = as.numeric(class_table))
+barplot(class_df$Frequency, names.arg = class_df$Class_Type, col = "skyblue", main = "% of Free Lunch by Class", xlab = "Class Type", ylab = "Frequency")
+
+hist(STAR1$median_math1,
+     main = "Median Math Scores in 1st grade per Teacher",
+     xlab = "Math Score",
+     ylab = "Frequency",
+     col = "skyblue",
+     border = "white",
+     breaks = 20,
+     xlim = c(450, 620),
+     ylim = c(0, 1000),
+     las = 1,
+     cex.axis = 0.8
+    )
+
+```
+
+We choose to aggregate students' performance by the **MEDIAN** math score in 1st grade rather than the mean due to several considerations. First, our unit of analysis is the teacher ID, reflecting the performance of the entire group of students taught by each teacher. By using the median, we capture the central tendency of the group's performance, which is less sensitive to extreme values and potential outliers. This is particularly relevant because the distribution of students' performance and its distribution within each class is unknown, and may exhibit skewness or kurtosis. Therefore, the median, denoted as $\tilde{X}$ and representing the score below which 50% of the data fall, provides a robust measure that is less affected by the shape of the distribution compared to the mean. Thus, it offers a more reliable representation of the typical performance of students within each teacher's class.
+
+We can see the distribution of this median per teacher's class in the figure above.
+
+**Creation of new categorical variable: % of Free lunch**
+
+As extensively discussed in this report, the STAR dataset lacks socioeconomic variables but includes an indicator that could suggest income level, namely free lunch. However, this variable is measured at the student level, while our analysis considers the entire class as a unit. To address this, we create a new variable, **% of free lunch**, which measures the proportion of students with access to free lunch within each class. If this proportion is greater than 50%, the class is categorized as "high % free lunch"; otherwise, it is categorized as "low % free lunch". The plot indicates that the majority of first-grade students belong to classes with a low % of lunch access, implying that most classes have a low proportion of students receiving free lunch.
+
+Although the idea of creating three categories (low, medium, and high % of free lunch) was considered, we opted to maintain the 50% threshold already used in the study for assigning urbanicity levels to ensure consistency.
+
+**Analysis of Other Variables**:
+
+The distribution of **class types** appears relatively balanced, with regular and regular + aid classes naturally accommodating more students due to their larger sizes. However, the small class type is also well represented, indicating diversity across class sizes within the dataset. 
+
+While we do not visualize the **school ID** variable, as it comprises arbitrary identifiers without discernible patterns, it's worth noting that urbanicity, primarily characterized as rural, is inherently **nested** within this variable, reflecting the singular location of each school.
+
+
+
+```{r, echo = FALSE}
+# [ref:Bacon, Patrik, colleague that provided help in this part]
+# summary(na.omit(STAR1))
+# summary(na.omit(STAR1[match(unique(STAR1$g1tchid), STAR1$g1tchid),]))
+# STAR1[match(unique(STAR1$g1schid), STAR1$g1schid),]
+```
+
+
+
+## Multivariate Descriptive Statistics
+
+Some visualization of our variables of interest from the questions. 
+First of all, and regarding to the primary question of interest it is possible to check the math scores by class type.
+
+```{r}
+library(ggplot2)
+
+ggplot(STAR1, aes(x = g1classtype, y = median_math1)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  labs(x = "Class Type", y = "Median Math Score grouped by teacher", title = "Median Math Score Distribution by Class Type") +
+  theme_minimal()
+```
+
+Second, we see the boxplot regarding the free luch percentage and the class type.
+  
+```{r, results='hide',fig.keep='all'}
+
+ggplot(STAR1[which(!is.na(STAR1$g1tfreelunch)),], aes(x = g1tfreelunch, y = median_math1, fill = g1classtype)) +
+  geom_boxplot(color = "black") +
+  labs(x = "Level of Absences",
+       y = "Median Math Score",
+       title = "Median Math Score Distribution by Free Luch and Class Type") +
+  theme_minimal()
+```
+
+**Droping variable of urbanicity**
+
+The variable school ID is difficult to visualize and since it is nested inside school ID, we drop the variable of urbanicity. We use the criteria the one that contains more information, and therefore could explain better our response variable, which in this case is school ID.
+
+
+Now we see the main effect plots, where we can see they have influence in the median of the math score.
+
+
+```{r, echo = FALSE, results='hide',fig.keep='all'}
+#options(repr.plot.width=12, repr.plot.height=12)
+par(mfrow=c(2,2))
+# Main effect plot for class type
+suppressWarnings(plotmeans(median_math1 ~ g1classtype, data = STAR1, xlab = "ClassType", ylab = "Median Math Score",
+          main="Main  effect, class type",cex.lab=1.5, col = "#FF7F0E") )
+# Main effect plot for urbanicity
+suppressWarnings(plotmeans(median_math1 ~ g1surban, data = STAR1, xlab = "Urbanicity", ylab = "Median Math Score",
+          main="Main  effect, location",cex.lab=1.5, col = "#2CA02C") )
+# Main effect plot for school ID
+suppressWarnings(plotmeans(median_math1 ~ g1schid, data = STAR1, xlab = "SchoolID", ylab = "Median Math Score",
+          main="Main  effect, school ID",cex.lab=1.5, col = "#1F77B4") )
+# Main effect plot for free lunch
+suppressWarnings(plotmeans(median_math1 ~ g1tfreelunch, data = STAR1, xlab = "Free Lunch", ylab = "Median Math Score",
+          main="Main  effect, school ID",cex.lab=1.5, col = "#1F77B4") )
+
+```
+
+
+## Observation of interaction between confounding variables
+<div id="interactions"></div>
+Now we check the interactions plot
+
+```{r, include=FALSE}
+suppressMessages(attach(STAR1))
+```
+
+
+```{r, echo = FALSE, results='hide',fig.keep='all'}
+
+par(mfrow=c(2,2))
+#Interaction plot
+
+
+suppressWarnings(interaction.plot(g1classtype, g1surban, median_math1
+                ,cex.lab=1.5,ylab="Median Math Score",xlab='Class Type', 
+                main="Interaction effects between class type and location", col = c("#1F77B4", "#FF7F0E", "#2CA02C", "#E82ABC") )) 
+
+suppressWarnings(interaction.plot(g1schid,g1classtype, median_math1
+                ,cex.lab=1.5,ylab="Median Math Score",xlab='School ID', 
+                main="Interaction effects between class type and School ID", col = c("#1F77B4", "#2CA02C", "#E82ABC") )) 
+
+suppressWarnings(
+  interaction.plot(
+    g1schid, 
+    g1surban, 
+    median_math1, 
+    cex.lab = 1.5, 
+    ylab = "Median Math Score", 
+    xlab = "School ID", lwd = 2 ,
+    main = "Effects of School ID plot", 
+    col = c("#1F77B4", "#FF7F0E", "#2CA02C", "#D62728")  # Colors for each level
+  )
+)
+
+suppressWarnings(interaction.plot(STAR1$g1tfreelunch,g1classtype, median_math1
+                ,cex.lab=1.5,ylab="Median Math Score",xlab='School ID', 
+                main="Interaction effects between class type and free luch", col = c("#1F77B4", "#2CA02C", "#E82ABC") )) 
+
+# # Create a data frame with your variables
+# data <- data.frame(g1classtype, g1surban, g1schid, median_math1)
+# 
+# # Plot interaction effects using ggplot2
+# ggplot(data, aes(x = g1surban, y = median_math1, color = factor(g1surban), group = factor(g1surban))) +
+#   geom_line() +
+#   facet_wrap(~g1classtype) +
+#   labs(x = "Class Type", y = "Median Math Score", 
+#        title = "Interaction Effects between Class Type, Location, and School ID")
+
+
+```
+
+Since all the interactions plot we see are paralell, we will drop the interactions in our model.
+
+
+
+
+
+```{r, echo = FALSE, include=FALSE}
+ggplot(STAR1, aes(x = g1tcareer, y = median_math1)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  labs(x = "Class Type", y = "Median Math Score grouped by teacher career", title = "Median Math Score Distribution by Teacher Career") +
+  theme_minimal()
+STAR1$exp_level <- cut(STAR1$g1tyears, breaks = c(0, 4, 10, Inf), labels = c("Low", "Medium", "High"), include.lowest = TRUE)
+
+# Plot the boxplots
+ggplot(STAR1, aes(x = exp_level, y = median_math1)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  labs(x = "Teacher Experience Level", y = "Median Math Score", title = "Median Math Score Distribution by Teacher Experience Level") +
+  theme_minimal()
+ggplot(STAR1, aes(x = g1thighdegree, y = median_math1)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  labs(x = "Class Type", y = "Median Math Score grouped by teacher", title = "Median Math Score Distribution by Class Type") +
+  theme_minimal()
+STAR1$abs_level <- cut(STAR1$g1absent,
+                       breaks = c(0, 3, 6, 11, Inf),
+                       labels = c("None", "Low", "Some", "Frequent"),
+                       include.lowest = TRUE)
+
+ggplot(STAR1, aes(x = abs_level, y = median_math1, fill = g1classtype)) +
+  geom_boxplot(color = "black") +
+  labs(x = "Level of Absences",
+       y = "Median Math Score",
+       title = "Median Math Score Distribution by Absences Level") +
+  theme_minimal()
+STAR1$abs_level <- cut(STAR1$g1absent,
+                       breaks = c(0, 3, 6, 11, Inf),
+                       labels = c("None", "Low", "Some", "Frequent"),
+                       include.lowest = TRUE)
+
+
+ggplot(STAR1, aes(x = g1surban, y = median_math1, fill = g1freelunch)) +
+  geom_boxplot(color = "black") +
+  labs(x = "Level of Absences",
+       y = "Median Math Score",
+       title = "Median Math Score Distribution by Free Luch and Location") +
+  theme_minimal()
+ggplot(STAR1, aes(x = g1tfreelunch, y = median_math1, fill = g1classtype)) +
+  geom_boxplot(color = "black") +
+  labs(x = "Free Lunch level",
+       y = "Median Math Score",
+       title = "Median Math Score Distribution by Free Luch and Class type") +
+  theme_minimal()
+```
+
+
+
+
+
+
+
+
+
+
+
+# Inferential analysis 
+
+According to the descriptive analysis, the three way ANOVA model with fixed effects is implemented in this case
+
+$$
+Y_{ijk} = \mu_{..} + \alpha_{i} + \beta_{j} + \gamma_{k} + \epsilon_{ijkl}
+$$
+
+Where:
+
+  - \(Y_{ijk}\) is the response variable, representing the mean math score for the \(i\)th class type, the \(j\)th school ID, the \(k\)th free lunch % type, and the \(l\)th class.
+  - \(\mu_{..}\) is the overall mean over all the indexes \(i,j,k,l\).
+  - \(\alpha_{i}\) represents the main effect of the \(i\)th class type on the math mean. The type of classes are: small ($i=1$), regular ($i=2$), regular with aide ($i=3$).
+  - \(\beta_{j}\) represents the main effect of the \(j\)th school (identified by its ID).
+  - \(\gamma_{k}\) represents the main effect of the \(k\)th free lunch percentage level. The percentage types are: high ($k=1$), low ($k=2$). 
+  - \(\epsilon_{ijkl}\) is the random error term that captures unexplained variation in the response variable.
+
+
+
+
+The constraints on the parameters are:
+
+  - \(\sum_{i=1}^{I} \alpha_i = 0\), ensuring that the sum of the class type effects is zero.
+  - \(\sum_{j=1}^{J} \beta_j = 0\), ensuring that the sum of the school effects is zero.
+  - \(\sum_{k=1}^{K} \gamma_k = 0\), ensuring that the sum of the location type effects is zero.
+
+
+All the factors are also considered as fixed given that there was not a process of randomization properly done and it is mostly an observational process. The free lunch, neither the school neither the size of the class are considered assigned to the students by a random way. The last parameter (class type) by reasons explained in this report (mistakes in randomization)
+
+
+
+
+**Assumptions**
+
+The assumptions associated with this  ANOVA model are as follows:
+
+1. **Independence**: The observations are assumed to be independent of each other. That is, the value of \(Y_{ijkl}\) for one combination of factors does not depend on the value of \(Y_{ijkl}\) for any other combination of factors.
+
+2. **Normality**: The residuals (\(\epsilon_{ijk}\)) are assumed to be normally distributed.
+
+3. **Homogeneity of Variance (Homoscedasticity)**: The variance of the residuals is constant across all levels of the factors \(\alpha_i\), \(\beta_j\) and ($\gamma_{k}$).
+
+4. **Additivity**: The effects of one factor (\(\alpha_i\) or \(\beta_j\)) or ($\gamma_{k}$) on the response variable (\(Y_{ijkl}\)) are assumed to be constant across all levels of the other factor.
+
+5. **No interaction terms**: There is no interactions between the factors.
+
+The last assumption is bassed on the [interaction](#interactions) plots where we see that all the line are almost parallel, which is a signal of independence of the factors.
+
+```{r}
+fit2 = aov(median_math1 ~ g1classtype + g1schid + g1tfreelunch, data = STAR1)
+summary(fit2)
+#anova(fit2)
+#plot(fit2)
+#plot(fit2$residuals)
+#hist(fit2$residuals)
+#lillie.test(fit2$residuals)$p.value
+
+
+```
+
+Regarding the coefficients, presented in [appendix of coefficients](#appendix), it is evident that transitioning from a small class to a regular + aide class results in a decrease of -11.34 points in the median math score, whereas transitioning to a regular class leads to a decrease of -11.76 points. Conversely, shifting from a class where most students have free lunch to one where most students do not have free lunch corresponds to an increase of 5.29 points in the median math score.
+
+
+
+```{r, echo = FALSE}
+# fit0 =aov(mean_math1 ~ g1classtype * g1schid, data = STAR1)
+# summary(fit0)
+```
+
+
+```{r, echo = FALSE}
+# fit1 = aov(mean_math1 ~ g1classtype + g1schid, data = STAR1)
+# summary(fit1)
+#fit2$coefficients
+```
+
+
+## Why is this model appropiate?
+
+a. It effectively summarizes the variables that influence the median mathematics score of first-grade students. Through our analysis, we identify that this score is influenced by school ID, class type, urbanicity, and the percentage of students receiving free lunch. Each of these variables exhibits a significant impact on the median score, with all having a p-value of less than 0.01, indicating strong statistical significance.
+
+b. The model encompasses three key characteristics that could impact student performance: class size (reflecting pedagogic dynamics), socioeconomic variables (such as the percentage of students receiving free lunch, serving as an indicator of income), and school location (represented by school ID).
+
+c. The coefficients derived from this model align with the observed dynamics within the dataset. For instance, the model confirms that smaller class sizes are associated with better performance, and a lower percentage of students receiving free lunch correlates with higher math scores. These findings are consistent with the patterns observed in the data analysis.
+
+
+## Primary Question
+
+According to the objectives, the primary question is **Are there any differences in math scaled scores in 1st grade across class types?**, which derives in the following hypothesis statetment to be tested
+
+$H_0: \alpha_i=0$ vs $H_a: \text{at least one } \alpha_i\neq0$
+
+In order to answer this question, a F test is necessary with the F-statistic or p-value obtained in the model that was just fitted. However, given that the model shows some violation of the assumptions (see [sensitivity analysis](#sensitivity)), we perform a non parametric analysis with Kruskal-Wallis rank sum test.
+The Kruskal-Wallis rank sum test statistic, denoted by $H$, is a non-parametric test used to determine whether there are statistically significant differences between the medians of three or more independent groups. It is based on the ranks of the data rather than the actual values and is particularly suited for situations where the assumptions of parametric tests like ANOVA are violated, such as when the data is not normally distributed or when the variances are unequal across groups. 
+
+The hypothesis statement are:
+
+Null Hypothesis ($H_0$):
+\[ H_0: \text{The medians of all three groups are equal.} \]
+
+Alternative Hypothesis ($H_a$):
+\[ H_a: \text{At least one group's median differs from the others.} \]
+
+The Kruskal-Wallis test statistic follows a chi-square distribution with $k-1$ degrees of freedom, where $k$ is the number of groups being compared.
+
+$$H = \frac{12}{{N(N+1)}} \sum_{i=1}^{k} \frac{R_i^2}{{n_i}} - 3(N+1)$$
+
+ - $N$ is the total number of observations across all groups.
+ - $k$ is the number of groups being compared.
+ - $R_i$ is the sum of ranks for the $ith$ group.
+ - $n_i$is the number of observations in the iiith group.
+
+
+```{r, echo=FALSE}
+
+kwPval <- kruskal.test(STAR1$median_math1, STAR1$g1classtype)$p.value
+kwPval
+```
+
+
+
+This low p-value 5.348874e-49 for Kruskal test leads to the rejection of $H_0$, which means that at least one group's median differs from the others. This agrees with the multvariate analysis where the class type shows a evident effect on the medians
+
+```{r}
+# Main effect plot for class type
+suppressWarnings(plotmeans(median_math1 ~ g1classtype, data = STAR1, xlab = "ClassType", ylab = "Median Math Score",
+          main="Main  effect, class type",cex.lab=1.5, col = "#FF7F0E") )
+```
+
+
+```{r}
+#kruskal.test(median_math1 ~ g1classtype + g1schid + g1tfreelunch, data = STAR1)
+```
+
+
+```{r, echo = FALSE}
+# summary(fit2)
+```
+## Secondary Question 
+
+Which class type is associated with the highest math scaled scores in 1st grade?
+
+For this question we can set the hypothesis to see if the factor effects are equal or one is higher and therefore influences the score of the students.
+
+$H_0: \alpha_i>\alpha_j$ when $i\neq j$ vs $H_a: $ when $i\neq j$
+
+In this case, we are comparing simultaneously pairwise. Given that the assumptions of the normality are not accomplished, we use the Dunnett's test, which is a non-parametric method  employed to compare multiple groups in a pairwise manner, assessing whether there are significant differences between the groups.
+
+Mathematically, the Dunnett's test evaluates the following hypothesis for each pairwise comparison:
+
+$H_0:$ There is no difference between the groups
+$H_1:$ There is a difference between the groups
+
+The test statistic used in the Dunnett's test  is based on the rank sums of the data within each group. These rank sums are then compared to determine if there are significant differences between the groups.
+
+$$D = \frac{\bar{X}_i - \bar{X}_c}{\sqrt{\frac{MSE}{n}}}$$
+
+$$
+\bar{X}_i : \text{Mean of treatment group} \\
+\bar{X}_c : \text{Mean of control group} \\
+MSE : \text{Mean squared error} \\
+n : \text{Number of observations}
+$$
+
+```{r, include=FALSE}
+library(FSA)
+library(knitr)
+dtest = dunnTest(STAR1$median_math1, STAR1$g1classtype, "bonferroni")
+```
+
+```{r}
+kable(dtest$res)
+```
+
+
+
+Firstly, the differences are not zero and all the p-values are significant, indicating a significant difference between the mean math scores of different class sizes. Therefore, we reject the null hypothesis ($H_0:$ There is no difference between the groups) for all pairwise comparisons.
+
+Secondly, the positive differences suggest that small classes have a higher median math scaled score in 1st grade compared to regular and regular-with-aide classes. This difference is statistically significant at a significance level of $\alpha = 0.01$. Thus, we can conclude that small classes are associated with the highest math scaled scores in 1st grade among the different class sizes.
+This support the first annotation in the descriptive analysis when the boxplots suggested a difference.
+
+The ranking of perfomrance is 
+
+1. Small class
+2. Regular + aide 
+3. Regular class
+
+This could be related to the attention that every teacher show to the students and how personalized can be the learning process. Besides, there is an enviroment of learning that could be quieter than regular size classes. This also could explain the discipline problems that parents were complained and were registered in the technical report [8].
+
+```{r, echo = FALSE}
+#TukeyHSD(fit2, "g1classtype", conf.level = 0.01)
+```
+
+
+## Caveats of Initial Analysis
+
+An initial analysis of the project was conducted on February 16, 2024, where an approximation of the model and its associated questions was undertaken. Several caveats were identified during this initial analysis:
+
+1. **Use of Mean as Summary Measure for Math Score:** Despite the unit of analysis being teacher groups, the mean was initially chosen as the summarizing measure for math scores. However, upon further examination of the data and comparison with group behaviors, it became evident that the median would be a more suitable summary measure.
+
+2. **Incomplete Model Specification:** The model presented in the initial analysis included class type and school ID, but failed to account for other potentially confounding variables. As a result, the explanatory power of the model was limited, and certain important factors may have been overlooked.
+
+3. **Appropriateness of Test for Equal Variances:** The Bartlett test was employed to assess the equality of variances, despite all variables in the ANOVA being categorical. A more appropriate test for this scenario would have been the Levene test, which is better suited for categorical variables.
+
+
+# Sensitivity analysis 
+<div id="sensitivity"></div>
+
+The residual plots associated with the model are checked and it is possible to say that their behavior seems to be fairly normal and accomplished the assumptions (they are going to be checked later in this document).
+
+
+```{r, echo = FALSE}
+par(mfrow=c(2,2))
+  plot(fit2)
+```
+
+
+
+
+Regarding the residuals vs fitted plot, it shows a non-pattern, which favors the assumption of constant variance of the error terms and indicates no evidence of heteroscedasticity. As for the QQ plot, it demonstrates a normal behavior, although there is also evidence of a **heavy** tail for the extreme data points.
+
+```{r, echo = FALSE}
+hist(fit2$residuals, breaks = 20, col = "skyblue", main = "Histogram of Residuals", xlab = "Residuals", ylab = "Frequency")
+```
+
+
+$H_0:$ $\epsilon_{ijkl}$ follows a normal distribution \
+$H_a:$ $\epsilon_{ijkl}$ does not follow a normal distribution
+
+Given the number of data, Shapiro test does not work, therefore to test this hypothesis statement we use another test for check normality such as the Lilliefors test, also known as the Lilliefors corrected Kolmogorov-Smirnov test, which is a statistical method used to test the null hypothesis that a sample comes from a population with a specified distribution, typically a normal distribution. It is a variant of the Kolmogorov-Smirnov test that takes into account the estimation of the population parameters from the sample data.
+
+The test statistic for the Kolmogorov-Smirnov test, denoted as \(D\), measures the maximum vertical distance between the empirical distribution function (EDF) of the sample data and the cumulative distribution function (CDF) of the specified distribution. Mathematically, it is defined as:
+
+\[D = \max_{1 \leq i \leq n} | F(X_i) - S_i|\]
+
+where \(F\) is the CDF of the specified distribution, \(X_i\) are the observed data points, and \(S_i\) is the empirical distribution function at the \(i\)-th data point.
+
+
+The test statistic \(D\) follows a known distribution under the null hypothesis. The critical values of \(D\) can be obtained from statistical tables or calculated using software. If the observed value of \(D\) exceeds the critical value at a chosen significance level (e.g., 0.05), then the null hypothesis is rejected, indicating that the sample data do not follow the specified distribution.
+
+
+The resulting p-value from the Lilliefors test can be interpreted as follows: 
+
+```{r, echo = FALSE}
+library(KScorrect)
+library(nortest)
+suppressMessages(lillie.test(fit2$residuals)$p.value)
+
+#ad.test(fit1$residuals)$p.value
+```
+
+This p-value of `2.237755e-24` suggests that the $H_0:$ $\epsilon_{ijkl}$ follows a normal distribution should be rejected and therefore nonparametric methods are used in this report.
+
+```{r, echo = FALSE}
+# library(KScorrect)
+# library(nortest)
+# lillie.test(fit2$residuals)$p.value
+# ad.test(fit2$residuals)$p.value
+```
+
+## Testing equal variance
+
+In order to check the assumptions of equal variances, the Levene test is perfomed
+
+$H_0$: The variances of the groups are equal \\
+$H_a$: At least one group has a different variance
+
+In order to check, the statistic is 
+
+\[
+W = \frac{(N - k)}{(k - 1)} \sum_{i=1}^{k} n_i \left( \frac{Z_i - Z}{N - k} \right)^2
+\]
+
+where:
+
+  *   $W$ is the test statistic,
+*   $N$ is the total number of observations,
+*   $k$ is the number of groups or categories,
+*   $n_i$ is the number of observations in group $i$,
+*   $Z_i$ is the absolute deviation of the individual value from its group mean,
+*   $\bar{Z}$ is the overall mean of all observations.
+
+
+The resulted p-value for this test is
+
+```{r, echo = FALSE, include=FALSE}
+library(car)
+```
+
+
+```{r}
+as.data.frame(leveneTest(median_math1 ~ g1classtype*g1tfreelunch*(g1schid), data = STAR1))
+#oneway.test(median_math1 ~ g1classtype*g1tfreelunch*g1schid, data = STAR1)
+```
+
+Where it is possible to conclude that with a p-value$\approx 0$ we reject $H_0$: The variances of the groups are equal and thereforethis assumption is not accomplished.
+
+As a result, the normality assumption of the errors is not accomplished neither the equal variance, therefore this report contains nonparametric measurements for the answer of the questions. 
+
+
+**********
+
+
+# Discussion
+
+## Conclusion
+
+This project aimed to understand how class type and size impact math performance in first-grade students participating in Project STAR. Through data analysis, we explored variables like class type, school, urbanicity, attendance, and teachers' characteristics. Our analysis started with a dataset overview, addressing experimental design limitations. We then employed a fixed effects ANOVA model, treating each class as an observation and using median math scores. Sensitivity analysis led us to utilize non-parametric methods to address non-normality in errors.
+
+The analysis of math scaled scores in first grade among Project STAR students reveals clear differences across class types. Students in small classes exhibit better performance compared to those in Regular + Aide and Regular classes. This finding underscores the importance of class size in influencing academic outcomes. Additionally, the influence of school ID and the percentage of students receiving free lunch within the class further elucidates the complex dynamics impacting student achievement.
+
+However, it's essential to note that the data and the model exhibit heteroskedasticity and kurtosis, indicating departure from parametric distribution assumptions. As a result, non-parametric tests are warranted for robust analysis and inference. These findings have significant implications for educational policy and practice, emphasizing the importance of class size considerations in fostering academic success among first-grade students.
+
+Moving forward, we recommend implementing a public policy aimed at reducing class sizes across all grades, with a specific focus on lower-income communities where the impact of class size reduction can be most significant. Additionally, it's imperative to conduct longitudinal studies to assess the long-term effects of reduced class sizes on student performance in higher grades. By continually evaluating the impact of class size reduction initiatives, policymakers can make informed decisions to optimize educational outcomes for all students.
+
+## Caveats of the current analysis 
+
+**Constrains in extrapolation**: Multiple papers suggest that there are different results for lower initial grades in comparison with higher grades regarding the effects of the size of the class. Given that this project only analyzes first grade, it is important to analyze higher courses to see what is the behavior, which could not be the same as the results presented here.
+
+**Absence of Individual-Level Analysis and Variation Consideration**:
+This project adopted the teacher's ID as the experimental unit, meaning that individuals (students) were not assessed individually but as part of a group. While recognizing the limitations associated with this approach, the primary aim was to determine which class type yielded better performance. Consequently, analyzing the results at a group level and assuming that individual differences were mitigated through randomization was deemed appropriate.
+
+**Absence of teacher's characteristics**
+
+Despite the significant role teachers play in the classroom, variables such as grade level, ethnicity, and experience did not demonstrate a discernible impact on the median math score. Moving forward, it is imperative to conduct more in-depth exploration to understand how teacher characteristics influence student performance within the model. This would provide valuable insights for future analysis and educational research.
+
+
+# Aknowledgement
+
+1. Chen, Shizhe. Chapter 4 Analysis of Variance. NBviewer and lecture notes.
+2. Bae, Eunseong. 2024WQ STA207 Discussion 6. Feb 14, 2024
+3. Use of stack overflow and chat GPT for guidance (marked on the file or code)
+4. Project discussed with classmates Bacon, P, Qureshi, L, Kim, J, Jewell, B, Alim, L and Lu, J.
+5. Farris, Andrew. Class STA104 Applied Statistical Methods: Nonparametric Statistics
+
+# References {-}
+
+[1] Neter, J., Wasserman, W., & Kutner, M. H. (1990). Applied linear statistical models : regression, analysis of variance, and experimental designs. 3rd ed. Burr Ridge (Ill.): Irwin.
+
+[2] Imbens, G., & Rubin, D. (2015). Stratified Randomized Experiments. In Causal Inference for Statistics, Social, and Biomedical Sciences: An Introduction (pp. 187-218). Cambridge: Cambridge University Press. doi:10.1017/CBO9781139025751.010
+
+[3] Higgins, J. J. (n.d.). An introduction to modern nonparametric statistics. Brooks-Cole. 
+
+[4] Finn, J. D., Gerber, S. B., & Boyd-Zaharias, J. (2005). Small classes in the early grades, academic achievement, and graduating from high school. Journal of Educational Psychology.
+
+[5] Krueger, A. B., & Whitmore, D. M. (2002). Would smaller classes help close the black-white achievement gap? In Bridging the Achievement Gap. Brookings Institution Press.
+
+[6] Hanushek, E. A. (1999). Some Findings from an Independent Investigation of the Tennessee STAR Experiment and from Other Investigations of Class Size Effects. Educational Evaluation and Policy Analysis, 21(2), 143–163. https://doi.org/10.2307/1164297
+
+[7] Finn, J., Boyd-Zaharias, J., Fish, R., & Gerber, S. (2007, January). Project STAR and Beyond: Database User's Guide.
+
+[8] Achilles, Charles, Nannete, Martha. THE STATE OF TENNESSEE'S STUDENT/TEACHER ACHIEVEMENT RATIO (STAR). Technical Report 1985-1990.
+PROJECT
+
+# Apendix: List of the coefficients
+<div id="appendix"></div>
+
+```{r}
+fit2$coefficients
+```
+
+
+# Session info {-}
+
+
+```{r}
+sessionInfo()
+```
+
+# Code 
+
+```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE} 
+```
+
