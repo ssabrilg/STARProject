@@ -5,7 +5,7 @@ This repository contains files related to a study examining the impact of class 
 ## Files
 
 - **Report (HTML)**: The final report of the study is available in HTML format. It provides detailed insights, analysis, and findings from the study.
-  - [Report (SSAGSTA207Final____project4444.html)]([SSAGSTA207Final____project4444.html](https://github.com/ssabrilg/STARProject/blob/main/SSAGSTA207Final____project4444.html))
+  - [Report (SSAGSTA207Final____project4444.html)]([SSAGSTA207Final____project4444.html](https://github.com/ssabrilg/STARProject/blob/main/SSAGSTA207Final____project4444.html)
 
 - **R Markdown Code**: The R Markdown code used to generate the report is available for reference.
   - [R Markdown Code (SSAGSTA207Final____project4444.rmd)](https://github.com/ssabrilg/STARProject/blob/main/SSAGSTA207Final____project4444.Rmd)
